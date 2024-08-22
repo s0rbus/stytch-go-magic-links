@@ -109,14 +109,31 @@ func (c *config) authenticate(w http.ResponseWriter, r *http.Request) {
 		log.Printf("something went wrong authenticating the magic link: %s\n", err)
 	}
 
+	log.Println("printing response writer header before save....")
+	for name, values := range w.Header() {
+		// Loop over all values for the name.
+		for _, value := range values {
+			log.Println(name, value)
+		}
+	}
+
 	session, err := store.Get(r, "stytch_session")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("storing session token: %v", resp.SessionToken)
 
 	session.Values["token"] = resp.SessionToken
 	session.Save(r, w)
+
+	log.Println("printing response writer header after save....")
+	for name, values := range w.Header() {
+		// Loop over all values for the name.
+		for _, value := range values {
+			log.Println(name, value)
+		}
+	}
 
 	c.homepage(w, r)
 }

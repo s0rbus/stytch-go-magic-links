@@ -33,6 +33,10 @@ body {
     width: 24px;
 }
 
+.icon.disabled {
+    opacity: 0.4;
+}
+
 .content {
     align-items: center;
     background-image: url("../images/hellosocks-background.png");
