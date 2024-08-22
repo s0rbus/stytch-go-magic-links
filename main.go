@@ -106,7 +106,7 @@ func (c *config) registerPasskey(w http.ResponseWriter, r *http.Request) {
 		Limit: 1,
 		Query: &users.SearchUsersQuery{
 			Operator: `AND`,
-			Operands: []map[string]any{{"filter_name": "email"}, {"filter_value": r.FormValue("email")}},
+			Operands: []map[string]any{{"filter_name": "email_address"}, {"filter_value": fmt.Sprintf("\"%v\"", r.FormValue("email"))}},
 		},
 	})
 	if err != nil {
