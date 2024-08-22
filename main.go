@@ -17,6 +17,7 @@ import (
 	"github.com/stytchauth/stytch-go/v12/stytch/consumer/sessions"
 	"github.com/stytchauth/stytch-go/v12/stytch/consumer/stytchapi"
 	"github.com/stytchauth/stytch-go/v12/stytch/consumer/users"
+	"github.com/stytchauth/stytch-go/v12/stytch/consumer/webauthn"
 )
 
 var (
@@ -34,6 +35,7 @@ type templateVariables struct {
 	LoginOrCreateUserPath string
 	LoggedOutPath         string
 	EmailAddress          string
+	RegisterPasskeyPath   string
 }
 
 func main() {
@@ -49,6 +51,7 @@ func main() {
 	// routes
 	r.HandleFunc("/", c.homepage).Methods("GET")
 	r.HandleFunc("/login_or_create_user", c.loginOrCreateUser).Methods("POST")
+	r.HandleFunc("/register_passkey", c.registerPasskey).Methods("POST")
 	r.HandleFunc("/authenticate", c.authenticate).Methods("GET")
 	r.HandleFunc("/logout", c.logout).Methods("GET")
 
@@ -75,7 +78,7 @@ func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 
 	parseAndExecuteTemplate(
 		"templates/loginOrSignUp.html",
-		&templateVariables{LoginOrCreateUserPath: c.fullAddress + "/login_or_create_user"},
+		&templateVariables{LoginOrCreateUserPath: c.fullAddress + "/login_or_create_user", RegisterPasskeyPath: c.fullAddress + "/register_passkey"},
 		w,
 	)
 
@@ -94,6 +97,45 @@ func (c *config) loginOrCreateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	parseAndExecuteTemplate("templates/emailSent.html", nil, w)
+
+}
+
+func (c *config) registerPasskey(w http.ResponseWriter, r *http.Request) {
+
+	srchresp, err := c.stytchClient.Users.Search(context.Background(), &users.SearchParams{
+		Limit: 1,
+		Query: &users.SearchUsersQuery{
+			Operator: `AND`,
+			Operands: []map[string]any{{"filter_name": "email"}, {"filter_value": r.FormValue("email")}},
+		},
+	})
+	if err != nil {
+		log.Printf("something went wrong starting passkey registration: %s\n", err)
+	}
+
+	if len(srchresp.Results) == 0 {
+		log.Printf("found 0 users for passkey registration for email: %s\n", r.FormValue("email"))
+	} else {
+
+		log.Printf("found %v users for email %s", len(srchresp.Results), r.FormValue("email"))
+
+		regstartresp, err := c.stytchClient.WebAuthn.RegisterStart(
+			context.Background(),
+			&webauthn.RegisterStartParams{
+				UserID:                         srchresp.Results[0].UserID,
+				ReturnPasskeyCredentialOptions: true,
+			},
+		)
+
+		if err != nil {
+			log.Printf("something went wrong calling start passkey registration: %s\n", err)
+		}
+
+		log.Printf("passkey PK cred creation opts: %v\n", regstartresp.PublicKeyCredentialCreationOptions)
+	}
+
+	parseAndExecuteTemplate("templates/pkstart.html", nil, w)
+
 }
 
 // this is the endpoint the link in the magic link hits takes the token from the
@@ -194,11 +236,18 @@ func parseAndExecuteTemplate(temp string, templateVars *templateVariables, w htt
 // helper function so see if a key is in the .env file
 // if so return that value, otherwise return the default value
 func getEnv(key string, defaultValue string) string {
-	value, exists := os.LookupEnv(key)
+	/* value, exists := os.LookupEnv(key)
 	if value, exists = os.LookupEnv(key); exists {
 		return value
 	}
+	return defaultValue */
+	//fixed the original 'dodgy' code above
+
+	if value, exists := os.LookupEnv(key); exists {
+		return value
+	}
 	return defaultValue
+
 }
 
 // helper function to load in the .env file & set config values
