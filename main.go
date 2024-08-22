@@ -106,7 +106,7 @@ func (c *config) registerPasskey(w http.ResponseWriter, r *http.Request) {
 		Limit: 1,
 		Query: &users.SearchUsersQuery{
 			Operator: `AND`,
-			Operands: []map[string]any{{"filter_name": "email_address"}, {"filter_value": fmt.Sprintf("\"%v\"", r.FormValue("email"))}},
+			Operands: []map[string]any{{"filter_name": "email_address", "filter_value": []string{r.FormValue("email")}}},
 		},
 	})
 	if err != nil {
@@ -123,6 +123,7 @@ func (c *config) registerPasskey(w http.ResponseWriter, r *http.Request) {
 			context.Background(),
 			&webauthn.RegisterStartParams{
 				UserID:                         srchresp.Results[0].UserID,
+				Domain:                         "localhost",
 				ReturnPasskeyCredentialOptions: true,
 			},
 		)
