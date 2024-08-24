@@ -17,7 +17,6 @@ import (
 	"github.com/stytchauth/stytch-go/v12/stytch/consumer/sessions"
 	"github.com/stytchauth/stytch-go/v12/stytch/consumer/stytchapi"
 	"github.com/stytchauth/stytch-go/v12/stytch/consumer/users"
-	"github.com/stytchauth/stytch-go/v12/stytch/consumer/webauthn"
 )
 
 var (
@@ -28,6 +27,7 @@ type config struct {
 	address      string
 	fullAddress  string
 	stytchClient *stytchapi.API
+	whitelist    bool
 }
 
 // struct to hold the values to be passed to the html templates
@@ -51,7 +51,6 @@ func main() {
 	// routes
 	r.HandleFunc("/", c.homepage).Methods("GET")
 	r.HandleFunc("/login_or_create_user", c.loginOrCreateUser).Methods("POST")
-	r.HandleFunc("/register_passkey", c.registerPasskey).Methods("POST")
 	r.HandleFunc("/authenticate", c.authenticate).Methods("GET")
 	r.HandleFunc("/logout", c.logout).Methods("GET")
 
@@ -87,56 +86,51 @@ func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 // takes the email entered on the homepage and hits the stytch
 // loginOrCreateUser endpoint to send the user a magic link
 func (c *config) loginOrCreateUser(w http.ResponseWriter, r *http.Request) {
-	_, err := c.stytchClient.MagicLinks.Email.LoginOrCreate(
-		context.Background(),
-		&email.LoginOrCreateParams{
-			Email: r.FormValue("email"),
-		})
-	if err != nil {
-		log.Printf("something went wrong sending magic link: %s\n", err)
-	}
+
+	if c.findUser(r.FormValue("email")) {
+		_, err := c.stytchClient.MagicLinks.Email.LoginOrCreate(
+			context.Background(),
+			&email.LoginOrCreateParams{
+				Email: r.FormValue("email"),
+			})
+		if err != nil {
+			log.Printf("something went wrong sending magic link: %s\n", err)
+		}
+	// } else if config.whitelist != "true" {
+	// 	_, err := c.stytchClient.MagicLinks.Email.LoginOrCreate(
+	// 		context.Background(),
+	// 		&email.LoginOrCreateParams{
+	// 			Email: r.FormValue("email"),
+	// 		})
+	// 	if err != nil {
+	// 		log.Printf("something went wrong sending magic link: %s\n", err)
+	// 	}
+	// }
+	
 
 	parseAndExecuteTemplate("templates/emailSent.html", nil, w)
 
 }
 
-func (c *config) registerPasskey(w http.ResponseWriter, r *http.Request) {
+func (c *config) findUser(email string) bool {
 
 	srchresp, err := c.stytchClient.Users.Search(context.Background(), &users.SearchParams{
 		Limit: 1,
 		Query: &users.SearchUsersQuery{
 			Operator: `AND`,
-			Operands: []map[string]any{{"filter_name": "email_address", "filter_value": []string{r.FormValue("email")}}},
+			Operands: []map[string]any{{"filter_name": "email_address", "filter_value": []string{email}
 		},
 	})
 	if err != nil {
-		log.Printf("something went wrong starting passkey registration: %s\n", err)
+		log.Printf("something went wrong searching for user: %s\n", err)
 	}
 
 	if len(srchresp.Results) == 0 {
-		log.Printf("found 0 users for passkey registration for email: %s\n", r.FormValue("email"))
-	} else {
-
-		log.Printf("found %v users for email %s", len(srchresp.Results), r.FormValue("email"))
-
-		regstartresp, err := c.stytchClient.WebAuthn.RegisterStart(
-			context.Background(),
-			&webauthn.RegisterStartParams{
-				UserID:                         srchresp.Results[0].UserID,
-				Domain:                         "localhost",
-				ReturnPasskeyCredentialOptions: true,
-			},
-		)
-
-		if err != nil {
-			log.Printf("something went wrong calling start passkey registration: %s\n", err)
-		}
-
-		log.Printf("passkey PK cred creation opts: %v\n", regstartresp.PublicKeyCredentialCreationOptions)
+		log.Printf("found 0 users for email: %s\n", email)
+		return false
 	}
-
-	parseAndExecuteTemplate("templates/pkstart.html", nil, w)
-
+	log.Printf("found %v users for email %s", len(srchresp.Results), email)
+	return true
 }
 
 // this is the endpoint the link in the magic link hits takes the token from the
@@ -259,6 +253,8 @@ func initializeConfig() (*config, error) {
 	}
 	address := getEnv("ADDRESS", "localhost:3000")
 
+	useWhitelist := getEnv("USEWHITELIST", "false")
+
 	// define the stytch client using your stytch project id & secret
 	// use stytch.EnvLive if you want to hit the live api
 	stytchAPIClient, err := stytchapi.NewClient(
@@ -273,6 +269,7 @@ func initializeConfig() (*config, error) {
 		address:      address,
 		fullAddress:  "http://" + address,
 		stytchClient: stytchAPIClient,
+		whitelist:    useWhitelist == "true",
 	}, nil
 
 }
