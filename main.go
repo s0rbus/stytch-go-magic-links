@@ -87,29 +87,44 @@ func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 // loginOrCreateUser endpoint to send the user a magic link
 func (c *config) loginOrCreateUser(w http.ResponseWriter, r *http.Request) {
 
-	if c.findUser(r.FormValue("email")) {
-		_, err := c.stytchClient.MagicLinks.Email.LoginOrCreate(
-			context.Background(),
-			&email.LoginOrCreateParams{
-				Email: r.FormValue("email"),
-			})
-		if err != nil {
-			log.Printf("something went wrong sending magic link: %s\n", err)
+	//if we only allow pre-defined users access
+	if c.whitelist {
+		//check we have this user
+		if c.findUser(r.FormValue("email")) {
+			err := c.sendEmail(r.FormValue("email"))
+			if err != nil {
+				log.Print(err)
+				parseAndExecuteTemplate("templates/error.html", nil, w)
+			} else {
+				parseAndExecuteTemplate("templates/emailSent.html", nil, w)
+			}
+		} else {
+			log.Printf("could not find whitelist user %v", r.FormValue("email"))
+			parseAndExecuteTemplate("templates/forbidden.html", nil, w)
 		}
-	// } else if config.whitelist != "true" {
-	// 	_, err := c.stytchClient.MagicLinks.Email.LoginOrCreate(
-	// 		context.Background(),
-	// 		&email.LoginOrCreateParams{
-	// 			Email: r.FormValue("email"),
-	// 		})
-	// 	if err != nil {
-	// 		log.Printf("something went wrong sending magic link: %s\n", err)
-	// 	}
-	// }
-	
+	} else { //anyone can register, registered people can log in
+		err := c.sendEmail(r.FormValue("email"))
+		if err != nil {
+			log.Print(err)
+			parseAndExecuteTemplate("templates/error.html", nil, w)
+		} else {
+			parseAndExecuteTemplate("templates/emailSent.html", nil, w)
+		}
+	}
 
-	parseAndExecuteTemplate("templates/emailSent.html", nil, w)
+}
 
+func (c *config) sendEmail(emailaddr string) error {
+	_, err := c.stytchClient.MagicLinks.Email.LoginOrCreate(
+		context.Background(),
+		&email.LoginOrCreateParams{
+			Email: emailaddr,
+		})
+	if err != nil {
+		return fmt.Errorf("something went wrong sending magic link: %s", err)
+	}
+
+	return nil
 }
 
 func (c *config) findUser(email string) bool {
@@ -118,7 +133,7 @@ func (c *config) findUser(email string) bool {
 		Limit: 1,
 		Query: &users.SearchUsersQuery{
 			Operator: `AND`,
-			Operands: []map[string]any{{"filter_name": "email_address", "filter_value": []string{email}
+			Operands: []map[string]any{{"filter_name": "email_address", "filter_value": []string{email}}},
 		},
 	})
 	if err != nil {
