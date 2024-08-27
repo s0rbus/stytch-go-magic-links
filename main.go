@@ -36,6 +36,7 @@ type templateVariables struct {
 	LoggedOutPath         string
 	EmailAddress          string
 	RegisterPasskeyPath   string
+	NavLinks              map[string]template.HTML
 }
 
 func main() {
@@ -53,6 +54,8 @@ func main() {
 	r.HandleFunc("/login_or_create_user", c.loginOrCreateUser).Methods("POST")
 	r.HandleFunc("/authenticate", c.authenticate).Methods("GET")
 	r.HandleFunc("/logout", c.logout).Methods("GET")
+	r.HandleFunc("/men", c.menscollection).Methods("GET")
+	r.HandleFunc("/test", c.test).Methods("GET")
 
 	// Declare the static file directory
 	// this is to ensure our static assets & css are accessible & rendered
@@ -63,14 +66,34 @@ func main() {
 	log.Fatal(http.ListenAndServe(c.address, r))
 }
 
+func (c *config) test(w http.ResponseWriter, r *http.Request) {
+	linksmap := make(map[string]template.HTML)
+	linksmap["Women"] = ""
+	linksmap["Men"] = template.HTML("<a href=\"/men\">Men</a>")
+	parseAndExecuteTemplate(
+		"templates/loggedIn.html",
+		&templateVariables{LoggedOutPath: c.fullAddress + "/logout",
+			EmailAddress: "test@example.com",
+			NavLinks:     linksmap,
+		},
+		w,
+	)
+}
+
 // handles the homepage for Hello Socks
 func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 	user := c.getAuthenticatedUser(w, r)
 
 	if user != nil {
+		linksmap := make(map[string]template.HTML)
+		linksmap["Women"] = ""
+		linksmap["Men"] = template.HTML("<a href=\"/men\">Men</a>")
 		parseAndExecuteTemplate(
 			"templates/loggedIn.html",
-			&templateVariables{LoggedOutPath: c.fullAddress + "/logout", EmailAddress: user.Emails[0].Email},
+			&templateVariables{LoggedOutPath: c.fullAddress + "/logout",
+				EmailAddress: user.Emails[0].Email,
+				NavLinks:     linksmap,
+			},
 			w,
 		)
 	}
@@ -228,6 +251,25 @@ func (c *config) getAuthenticatedUser(w http.ResponseWriter, r *http.Request) *u
 	session.Save(r, w)
 
 	return &resp.User
+}
+
+// handles the Men's socks page for Hello Socks
+func (c *config) menscollection(w http.ResponseWriter, r *http.Request) {
+	user := c.getAuthenticatedUser(w, r)
+
+	if user != nil {
+		parseAndExecuteTemplate(
+			"templates/mens-socks.html",
+			nil,
+			w,
+		)
+	}
+
+	parseAndExecuteTemplate(
+		"templates/forbidden.html",
+		nil,
+		w,
+	)
 }
 
 // helper function to parse the template & render it with any provided data
