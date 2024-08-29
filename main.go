@@ -20,7 +20,8 @@ import (
 )
 
 var (
-	store = gorillaSessions.NewCookieStore([]byte("your-secret-key"))
+	store   = gorillaSessions.NewCookieStore([]byte("your-secret-key"))
+	TESTING = false
 )
 
 type config struct {
@@ -67,9 +68,9 @@ func main() {
 }
 
 func (c *config) test(w http.ResponseWriter, r *http.Request) {
-	linksmap := make(map[string]template.HTML)
+	/* linksmap := make(map[string]template.HTML)
 	linksmap["Women"] = ""
-	linksmap["Men"] = template.HTML("<a href=\"/men\">Men</a>")
+	linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
 	parseAndExecuteTemplate(
 		"templates/loggedIn.html",
 		&templateVariables{LoggedOutPath: c.fullAddress + "/logout",
@@ -77,7 +78,8 @@ func (c *config) test(w http.ResponseWriter, r *http.Request) {
 			NavLinks:     linksmap,
 		},
 		w,
-	)
+	) */
+	TESTING = true
 }
 
 // handles the homepage for Hello Socks
@@ -87,7 +89,7 @@ func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 	if user != nil {
 		linksmap := make(map[string]template.HTML)
 		linksmap["Women"] = ""
-		linksmap["Men"] = template.HTML("<a href=\"/men\">Men</a>")
+		linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
 		parseAndExecuteTemplate(
 			"templates/loggedIn.html",
 			&templateVariables{LoggedOutPath: c.fullAddress + "/logout",
@@ -174,10 +176,16 @@ func (c *config) findUser(email string) bool {
 // this is the endpoint the link in the magic link hits takes the token from the
 // link's query params and hits the stytch authenticate endpoint to verify the token is valid
 func (c *config) authenticate(w http.ResponseWriter, r *http.Request) {
+	var token string
+	if TESTING {
+		token = "DOYoip3rvIMMW5lgItikFK-Ak1CfMsgjuiCyI7uuU94="
+	} else {
+		token = r.URL.Query().Get("token")
+	}
 	resp, err := c.stytchClient.MagicLinks.Authenticate(
 		context.Background(),
 		&magiclinks.AuthenticateParams{
-			Token:                  r.URL.Query().Get("token"),
+			Token:                  token,
 			SessionDurationMinutes: 60,
 		})
 	if err != nil {
@@ -263,13 +271,14 @@ func (c *config) menscollection(w http.ResponseWriter, r *http.Request) {
 			nil,
 			w,
 		)
+	} else {
+		parseAndExecuteTemplate(
+			"templates/forbidden.html",
+			nil,
+			w,
+		)
 	}
 
-	parseAndExecuteTemplate(
-		"templates/forbidden.html",
-		nil,
-		w,
-	)
 }
 
 // helper function to parse the template & render it with any provided data

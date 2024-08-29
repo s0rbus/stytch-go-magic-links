@@ -1,3 +1,13 @@
+::-webkit-scrollbar {
+    width: 1px;
+    height: 1px;
+}
+
+::-webkit-scrollbar-button {
+    width: 1px;
+    height: 1px;
+}
+
 body {
     margin: 0;
 }
@@ -53,10 +63,11 @@ body {
     display: flex;
     height: 400px;
     justify-content: center;
-    width: 720px;
+    width: 660px;
 }
 
 .cardContent {
+    height: 369px;
     text-align: center;
 }
 
@@ -112,4 +123,23 @@ h1 {
 
 .footnote {
     font-size: 6px;
+}
+
+.click-zoom input[type=checkbox] {
+    display: none
+}
+
+.click-zoom img {
+    margin: 1px;
+    transition: transform 0.25s ease;
+    cursor: zoom-in
+}
+
+.click-zoom input[type=checkbox]:checked~img {
+    transform: scale(2);
+    cursor: zoom-out
+}
+
+.socksimg {
+    scale: 0.2;
 }
