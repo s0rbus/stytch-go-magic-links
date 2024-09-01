@@ -64,6 +64,7 @@ func main() {
 	r.HandleFunc("/logout", c.logout).Methods("GET")
 	r.HandleFunc("/men", c.menscollection).Methods("GET")
 	r.HandleFunc("/women", c.womenscollection).Methods("GET")
+	r.HandleFunc("/kids", c.kidscollection).Methods("GET")
 	r.HandleFunc("/test", c.test).Methods("GET")
 
 	// Declare the static file directory
@@ -76,17 +77,6 @@ func main() {
 }
 
 func (c *config) test(w http.ResponseWriter, r *http.Request) {
-	/* linksmap := make(map[string]template.HTML)
-	linksmap["Women"] = ""
-	linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
-	parseAndExecuteTemplate(
-		"templates/loggedIn.html",
-		&templateVariables{LoggedOutPath: c.fullAddress + "/logout",
-			EmailAddress: "test@example.com",
-			NavLinks:     linksmap,
-		},
-		w,
-	) */
 	TESTING = true
 }
 
@@ -98,6 +88,7 @@ func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 		linksmap := make(map[string]template.HTML)
 		linksmap["Women"] = template.HTML(`<a href="/women">Women</a>`)
 		linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
+		linksmap["Kids"] = template.HTML(`<a href="/kids">Kids</a>`)
 		parseAndExecuteTemplate(
 			"templates/loggedIn.html",
 			&templateVariables{LoggedOutPath: c.fullAddress + "/logout",
@@ -305,6 +296,24 @@ func (c *config) womenscollection(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handles the Kid's socks page for Hello Socks
+func (c *config) kidscollection(w http.ResponseWriter, r *http.Request) {
+	user := c.getAuthenticatedUser(w, r)
+	if user != nil {
+		c.product(
+			w,
+			"Kid",
+			[]Product{{Name: "Pink/Yellow", Imagename: "kidspinkyellowsocks.png"}, {Name: "Blue/Pink", Imagename: "kidsbluepinksocks.png"}},
+		)
+	} else {
+		parseAndExecuteTemplate(
+			"templates/forbidden.html",
+			nil,
+			w,
+		)
+	}
+}
+
 // handles each product category page for Hello Socks
 func (c *config) product(w http.ResponseWriter, who string, data []Product) {
 	//user := c.getAuthenticatedUser(w, r)
@@ -313,6 +322,7 @@ func (c *config) product(w http.ResponseWriter, who string, data []Product) {
 	linksmap := make(map[string]template.HTML)
 	linksmap["Women"] = template.HTML(`<a href="/women">Women</a>`)
 	linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
+	linksmap["Kids"] = template.HTML(`<a href="/kids">Kids</a>`)
 	parseAndExecuteTemplate(
 		"templates/product.html",
 		&templateVariables{
