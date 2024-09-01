@@ -69,7 +69,15 @@ body {
 .cardContent {
     height: 369px;
     text-align: center;
+    padding: 20px;
 }
+
+.pt {
+    padding-left: 2px;
+    padding-top: 160px;
+    padding-right: 50px;
+}
+
 
 p {
     font-size: 20px;
@@ -132,14 +140,16 @@ h1 {
 .click-zoom img {
     margin: 1px;
     transition: transform 0.25s ease;
+    z-index: 10;
     cursor: zoom-in
 }
 
 .click-zoom input[type=checkbox]:checked~img {
-    transform: scale(2);
+    transform: scale(2) translate(-10%, 15%);
+
     cursor: zoom-out
 }
 
 .socksimg {
-    scale: 0.2;
+    height: 120px;
 }

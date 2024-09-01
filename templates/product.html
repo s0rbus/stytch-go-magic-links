@@ -11,8 +11,8 @@
         <div class="nav">
             <h2>Hello Socks</h2>
             <div>
-                <span class="navItem">Women</span>
-                <span class="navItem">Men</span>
+                <span class="navItem">{{.NavLinks.Women}}</span>
+                <span class="navItem">{{.NavLinks.Men}}</span>
                 <span class="navItem">Kids</span>
                 <span class="navItem">Sale</span>
                 <span class="navItem">Community</span>
@@ -24,26 +24,21 @@
         </div>
         <div class="content">
             <div class="card">
-                <div class="cardContent">
-                    <h1>Men's socks collection</h1>
-
-                    <div class="click-zoom" style="display:inline-table; height:inherit; position:relative">
-                        <label style="position:relative; top:-275px; left:-100px">
-                            <input type="checkbox">
-                            <img class="socksimg" src="/assets/images/greensocks.png" alt="Men's green socks"
-                                title="Photo by NIKHIL on Unsplash">
-                        </label>
-                    </div>
-
-                    <div class="click-zoom" style="display:inline-table; height:inherit; position:relative">
-                        <label style="position:relative; top:-1040px; left:130px">
-                            <input type="checkbox">
-                            <img class="socksimg" src="/assets/images/bluesocks.png" alt="Men's blue socks"
-                                title="Photo by NIKHIL on Unsplash">
-                        </label>
-                    </div>
-
+                <div class="cardContent pt">
+                    <h2>{{.Who}}'s Socks</h2>
                 </div>
+                {{range .Products}}
+                <div class="cardContent">
+                    <h3>{{.Name}} socks</h3>
+                    <div class="click-zoom" style="display:inline-table; height:inherit; position:relative">
+                        <label>
+                            <input type="checkbox">
+                            <img class="socksimg" src="/assets/images/{{.Imagename}}" alt="{{.}} 's {{.Name}} socks"
+                                title="Photo by NIKHIL on Unsplash">
+                        </label>
+                    </div>
+                </div>
+                {{end}}
             </div>
         </div>
     </div>

@@ -38,6 +38,13 @@ type templateVariables struct {
 	EmailAddress          string
 	RegisterPasskeyPath   string
 	NavLinks              map[string]template.HTML
+	Who                   string
+	Products              []Product
+}
+
+type Product struct {
+	Name      string
+	Imagename string
 }
 
 func main() {
@@ -56,6 +63,7 @@ func main() {
 	r.HandleFunc("/authenticate", c.authenticate).Methods("GET")
 	r.HandleFunc("/logout", c.logout).Methods("GET")
 	r.HandleFunc("/men", c.menscollection).Methods("GET")
+	r.HandleFunc("/women", c.womenscollection).Methods("GET")
 	r.HandleFunc("/test", c.test).Methods("GET")
 
 	// Declare the static file directory
@@ -88,7 +96,7 @@ func (c *config) homepage(w http.ResponseWriter, r *http.Request) {
 
 	if user != nil {
 		linksmap := make(map[string]template.HTML)
-		linksmap["Women"] = ""
+		linksmap["Women"] = template.HTML(`<a href="/women">Women</a>`)
 		linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
 		parseAndExecuteTemplate(
 			"templates/loggedIn.html",
@@ -264,12 +272,11 @@ func (c *config) getAuthenticatedUser(w http.ResponseWriter, r *http.Request) *u
 // handles the Men's socks page for Hello Socks
 func (c *config) menscollection(w http.ResponseWriter, r *http.Request) {
 	user := c.getAuthenticatedUser(w, r)
-
 	if user != nil {
-		parseAndExecuteTemplate(
-			"templates/mens-socks.html",
-			nil,
+		c.product(
 			w,
+			"Men",
+			[]Product{{Name: "Green", Imagename: "greensocks.png"}, {Name: "Blue", Imagename: "bluesocks.png"}},
 		)
 	} else {
 		parseAndExecuteTemplate(
@@ -278,6 +285,50 @@ func (c *config) menscollection(w http.ResponseWriter, r *http.Request) {
 			w,
 		)
 	}
+}
+
+// handles the Women's socks page for Hello Socks
+func (c *config) womenscollection(w http.ResponseWriter, r *http.Request) {
+	user := c.getAuthenticatedUser(w, r)
+	if user != nil {
+		c.product(
+			w,
+			"Women",
+			[]Product{{Name: "Pink", Imagename: "pinksocks.png"}, {Name: "Yellow", Imagename: "yellowflowersocks.png"}},
+		)
+	} else {
+		parseAndExecuteTemplate(
+			"templates/forbidden.html",
+			nil,
+			w,
+		)
+	}
+}
+
+// handles each product category page for Hello Socks
+func (c *config) product(w http.ResponseWriter, who string, data []Product) {
+	//user := c.getAuthenticatedUser(w, r)
+
+	//if user != nil {
+	linksmap := make(map[string]template.HTML)
+	linksmap["Women"] = template.HTML(`<a href="/women">Women</a>`)
+	linksmap["Men"] = template.HTML(`<a href="/men">Men</a>`)
+	parseAndExecuteTemplate(
+		"templates/product.html",
+		&templateVariables{
+			Who:      who,
+			Products: data,
+			NavLinks: linksmap,
+		},
+		w,
+	)
+	//} else {
+	//	parseAndExecuteTemplate(
+	//		"templates/forbidden.html",
+	//		nil,
+	//		w,
+	//	)
+	//}
 
 }
 
